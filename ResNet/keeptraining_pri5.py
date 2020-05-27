@@ -11,8 +11,11 @@ import torch.utils.data.sampler as sampler
 import numpy as np
 
 """
-This program is used to continue training 
-network from the precious stored 5-primary model if the training is interrupted.
+This program is used to continue training network from the precious stored 3-primary model if the training is interrupted.
+
+The ResNet-32 model code is defined and written by Enze Pan originally.
+
+The training framework codes are from the paper author, modifications are made to fit the ResNet model.
 """
 
 def ClassGenerator(label):
