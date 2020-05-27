@@ -9,12 +9,9 @@ import argparse
 import os
 from torch.autograd import Variable
 
-''' Beta 1.5:
-    Update: change learning rate from 0.01 to 0.1
-            Rewrite the print function 
-            step_size from 10 to 50  
-            Overfit
-            Change scheduler
+''' 
+This program is to test the single accuracy of ResNet-32 model.
+This is written by Enze Pan.
 '''
 class ResidualBlock(nn.Module):
     def __init__(self, inchannel, outchannel, stride=1):
@@ -84,33 +81,20 @@ def ResNet32():
 
 
 
-# 定义是否使用GPU
+# Devices chosen
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# 参数设置,使得我们能够手动输入命令行参数，就是让风格变得和Linux命令行差不多
+# hyper-parameter
 parser = argparse.ArgumentParser(description='PyTorch ResNet32 CINIC10 Training')
-parser.add_argument('--outf', default='./originmodel/', help='folder to output images and model checkpoints') #输出结果保存路径
+parser.add_argument('--outf', default='./originmodel/', help='folder to output images and model checkpoints') #output model file
 args = parser.parse_args()
 
-# 超参数设置
-EPOCH = 30   #遍历数据集次数
-pre_epoch = 0  # 定义已经遍历数据集的次数
-BATCH_SIZE = 100      #批处理尺寸(batch_size)
-LR = 0.01        #学习率
+EPOCH = 30   
+pre_epoch = 0  
+BATCH_SIZE = 100      
+LR = 0.01        
 
-# 准备数据集并预处理
-# transform_train = transforms.Compose([
-#     transforms.RandomCrop(32, padding=4),  #先四周填充0，在吧图像随机裁剪成32*32
-#     transforms.RandomHorizontalFlip(),  #图像一半的概率翻转，一半的概率不翻转
-#     transforms.ToTensor(),
-#     transforms.Normalize((0.479, 0.472, 0.430), (0.242, 0.238, 0.259)), #R,G,B每层的归一化用到的均值和方差
-# ])
-
-# transform_test = transforms.Compose([
-#     transforms.ToTensor(),
-#     transforms.Normalize((0.479, 0.472, 0.430), (0.242, 0.238, 0.259)),
-# ])
-
+# Read dataset and pre-processing 
 cinic_directory = './dataset/cinic10'
 cinic_mean = [0.47889522, 0.47227842, 0.43047404]
 cinic_std = [0.24205776, 0.23828046, 0.25874835]
@@ -132,28 +116,21 @@ cinic_valid = torch.utils.data.DataLoader(
         transform=transforms.Compose([transforms.ToTensor(),
         transforms.Normalize(mean=cinic_mean,std=cinic_std)])),
     batch_size=128, shuffle=True)
-#dataset above are euqal to trainloader, etc
 
-# trainset = torchvision.datasets.CIFAR10(root='./dataset/', train=True, download=True, transform=transform_train) #训练数据集
-# trainloader = torch.utils.data.DataLoader(trainset, batch_size=BATCH_SIZE, shuffle=True, num_workers=2)   #生成一个个batch进行批训练，组成batch的时候顺序打乱取
-
-# testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform_test)
-# testloader = torch.utils.data.DataLoader(testset, batch_size=100, shuffle=False, num_workers=2)
-# Cifar-10的标签
+# Cifar-10 label
 classes = ('airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
-# 模型定义-ResNet
 net = ResNet32().to(device)
 
-# 定义损失函数和优化方式
-criterion = nn.CrossEntropyLoss()  #损失函数为交叉熵，多用于多分类问题
-optimizer = optim.SGD(net.parameters(), lr=LR, momentum=0.9, weight_decay=5e-4) #优化方式为mini-batch momentum-SGD，并采用L2正则化（权重衰减）
+# Define optimizer and loss function
+criterion = nn.CrossEntropyLoss()  #Cross Entropy
+optimizer = optim.SGD(net.parameters(), lr=LR, momentum=0.9, weight_decay=5e-4) #mini-batch momentum-SGD，L2 Norm
 scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[10, 20], last_epoch=-1)
-# 训练
+# Training
 if __name__ == "__main__":
     if not os.path.exists(args.outf):
         os.makedirs(args.outf)
-    best_acc = 85  #2 初始化best test accuracy
-    print("Start Training Resnet32 on CINIC10...")  # 定义遍历数据集的次数
+    best_acc = 85  
+    print("Start Training Resnet32 on CINIC10...")  
     with open("acc_original.txt", "w") as f:
         with open("origin_log.txt", "w")as f2:
             for epoch in range(pre_epoch, EPOCH):
@@ -166,7 +143,6 @@ if __name__ == "__main__":
                 train_loss=0.0
                 label_num=0
                 for i, data in enumerate(cinic_train, 0):
-                    # 准备数据
                     length = len(cinic_train)
                     inputs, labels = data
                     inputs, labels = inputs.to(device), labels.to(device)
@@ -178,7 +154,6 @@ if __name__ == "__main__":
                     loss.backward()
                     optimizer.step()
 
-                    # 每训练1个batch打印一次loss和准确率
                     sum_loss += loss.item()
                     _, predicted = torch.max(outputs.data, 1)
                     total += labels.size(0)
@@ -186,15 +161,13 @@ if __name__ == "__main__":
                     train_acc+= 100. * correct / total
                     train_loss+=sum_loss / (i + 1)
                     label_num+=1
-                    # print('[epoch:%d, iter:%d] Loss: %.03f | Acc: %.3f%% '
-                    #       % (epoch + 1, (i + 1 + epoch * length), sum_loss / (i + 1), 100. * correct / total))
+                   
                     f2.write('%03d  %05d |Loss: %.03f | Acc: %.3f%% '
                           % (epoch + 1, (i + 1 + epoch * length), sum_loss / (i + 1), 100. * correct / total))
                     f2.write('\n')
                     f2.flush()
 
-                # 每训练完一个epoch测试一下准确率
-                #print("Waiting Test!")
+                # Test the model
                 with torch.no_grad():
                     test_correct = 0
                     test_total = 0
@@ -203,19 +176,16 @@ if __name__ == "__main__":
                         images, labels = data
                         images, labels = images.to(device), labels.to(device)
                         outputs = net(images)
-                        # 取得分最高的那个类 (outputs.data的索引号)
                         _, predicted = torch.max(outputs.data, 1)
                         test_total += labels.size(0)
                         test_correct += (predicted == labels).sum()
                     #print('Test accuracy：%.3f%%' % (100 * test_correct / test_total))
                     acc = 100. * test_correct / test_total
-                    # 将每次测试结果实时写入acc.txt文件中
-                    #print('Saving model......')
+
                     torch.save(net.state_dict(), '%s/net_%03d.pth' % (args.outf, epoch + 1))
                     f.write("EPOCH=%03d,Accuracy= %.3f%%" % (epoch + 1, acc))
                     f.write('\n')
                     f.flush()
-                    # 记录最佳测试分类准确率并写入best_acc.txt文件中
                     if acc > best_acc:
                         f3 = open("best_acc.txt", "w")
                         f3.write("EPOCH=%d,best_acc= %.3f%%" % (epoch + 1, acc))
