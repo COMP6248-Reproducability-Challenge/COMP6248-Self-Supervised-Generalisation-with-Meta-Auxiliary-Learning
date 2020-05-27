@@ -11,6 +11,15 @@ import torch.nn.functional as F
 import torch.utils.data.sampler as sampler
 import numpy as np
 
+"""
+This program is used to train maxl with 3 tasks
+
+The ResNet-32 model is defined and written by Enze Pan originally. The labelgenerator function is from the author of the paper
+and some modifications are made to fit the data and model.
+
+The training framework codes are from the paper author, modifications are made to fit the ResNet model.
+"""
+
 def ClassGenerator(label):
     class_3 = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 1, 6: 2, 7: 2, 8: 2, 9: 2}
     label_c3 = np.vectorize(class_3.get)(label)
