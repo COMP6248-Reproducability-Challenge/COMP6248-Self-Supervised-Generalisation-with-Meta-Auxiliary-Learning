@@ -10,8 +10,11 @@ import torch.nn.functional as F
 import numpy as np
 
 """
-This program is used to continue training 
-network from the precious stored 3-primary model if the training is interrupted.
+This program is used to continue training network from the precious stored 3-primary model if the training is interrupted.
+
+The ResNet-32 model code is defined and written by Enze Pan originally.
+
+The training framework codes are from the paper author, modifications are made to fit the ResNet model.
 """
 
 def ClassGenerator(label):
@@ -296,11 +299,7 @@ class ResNet(nn.Module):
                                                                  convnum=stride_num,finepara=4)],training=True)
                 counter += 1
       
-        #
-        #     #TODO:我他妈该怎么形容我的需求
-        #         #TODO：研究ResNet的网络结构 搞清楚这个参数到底尼玛以什么形式出现
-        #         #TODO:搞清楚了 舒服了 明天按照网络参数输出来写这个传到结构 然后直接把姐姐的标签分类借用过来 改吧改吧得一个CISIC的版本
-        #         #TODO：不知道不同参数的网络用不用改代码 希望不用
+        
         if index==1:
             self.lay1_out_net=net
         elif index ==2:
